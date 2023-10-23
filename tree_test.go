@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/arnaucube/arbo/db"
+	"github.com/arnaucube/arbo/db/goleveldb"
+	"github.com/arnaucube/arbo/db/pebbledb"
 	qt "github.com/frankban/quicktest"
-	"go.vocdoni.io/dvote/db"
-	"go.vocdoni.io/dvote/db/badgerdb"
-	"go.vocdoni.io/dvote/db/pebbledb"
 )
 
 func checkRootBIString(c *qt.C, tree *Tree, expected string) {
@@ -26,9 +26,9 @@ func checkRootBIString(c *qt.C, tree *Tree, expected string) {
 func TestDBTx(t *testing.T) {
 	c := qt.New(t)
 
-	dbBadger, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	dbLevel, err := goleveldb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
-	testDBTx(c, dbBadger)
+	testDBTx(c, dbLevel)
 
 	dbPebble, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
@@ -72,7 +72,7 @@ func TestAddTestVectors(t *testing.T) {
 }
 
 func testAdd(c *qt.C, hashFunc HashFunction, testVectors []string) {
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: hashFunc})
@@ -105,7 +105,7 @@ func testAdd(c *qt.C, hashFunc HashFunction, testVectors []string) {
 
 func TestAddBatch(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -124,7 +124,7 @@ func TestAddBatch(t *testing.T) {
 	checkRootBIString(c, tree,
 		"296519252211642170490407814696803112091039265640052570497930797516015811235")
 
-	database, err = badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err = pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree2, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -148,7 +148,7 @@ func TestAddBatch(t *testing.T) {
 
 func TestAddDifferentOrder(t *testing.T) {
 	c := qt.New(t)
-	database1, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database1, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree1, err := NewTree(Config{Database: database1, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -164,7 +164,7 @@ func TestAddDifferentOrder(t *testing.T) {
 		}
 	}
 
-	database2, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database2, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree2, err := NewTree(Config{Database: database2, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -190,7 +190,7 @@ func TestAddDifferentOrder(t *testing.T) {
 
 func TestAddRepeatedIndex(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -209,7 +209,7 @@ func TestAddRepeatedIndex(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -263,7 +263,7 @@ func TestUpdate(t *testing.T) {
 
 func TestAux(t *testing.T) { // TODO split in proper tests
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -303,7 +303,7 @@ func TestAux(t *testing.T) { // TODO split in proper tests
 
 func TestGet(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -428,7 +428,7 @@ func TestPackAndUnpackSiblings(t *testing.T) {
 
 func TestGenProofAndVerify(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -469,7 +469,7 @@ func TestDumpAndImportDumpInFile(t *testing.T) {
 
 func testDumpAndImportDump(t *testing.T, inFile bool) {
 	c := qt.New(t)
-	database1, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database1, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree1, err := NewTree(Config{Database: database1, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -489,7 +489,7 @@ func testDumpAndImportDump(t *testing.T, inFile bool) {
 	filePath := c.TempDir()
 	fileName := filepath.Join(filePath, "dump.bin")
 	if inFile {
-		f, err := os.Create(fileName)
+		f, err := os.Create(filepath.Clean(fileName))
 		c.Assert(err, qt.IsNil)
 		err = tree1.DumpWriter(nil, f)
 		c.Assert(err, qt.IsNil)
@@ -498,7 +498,7 @@ func testDumpAndImportDump(t *testing.T, inFile bool) {
 		c.Assert(err, qt.IsNil)
 	}
 
-	database2, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database2, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree2, err := NewTree(Config{Database: database2, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -526,7 +526,7 @@ func testDumpAndImportDump(t *testing.T, inFile bool) {
 
 func TestRWMutex(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -559,7 +559,7 @@ func TestRWMutex(t *testing.T) {
 // TODO UPDATE
 // func TestSetGetNLeafs(t *testing.T) {
 //         c := qt.New(t)
-//         database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+//         database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 //         c.Assert(err, qt.IsNil)
 //         tree, err := NewTree(database, 100, HashFunctionPoseidon)
 //         c.Assert(err, qt.IsNil)
@@ -610,13 +610,13 @@ func TestRWMutex(t *testing.T) {
 func TestAddBatchFullyUsed(t *testing.T) {
 	c := qt.New(t)
 
-	database1, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database1, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree1, err := NewTree(Config{Database: database1, MaxLevels: 4,
 		HashFunction: HashFunctionPoseidon})
 	c.Assert(err, qt.IsNil)
 
-	database2, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database2, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree2, err := NewTree(Config{Database: database2, MaxLevels: 4,
 		HashFunction: HashFunctionPoseidon})
@@ -671,7 +671,7 @@ func TestAddBatchFullyUsed(t *testing.T) {
 
 func TestSetRoot(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -728,7 +728,7 @@ func TestSetRoot(t *testing.T) {
 
 func TestSnapshot(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -779,7 +779,7 @@ func TestSnapshot(t *testing.T) {
 func TestGetFromSnapshotExpectArboErrKeyNotFound(t *testing.T) {
 	c := qt.New(t)
 
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 256,
 		HashFunction: HashFunctionPoseidon})
@@ -800,7 +800,7 @@ func TestGetFromSnapshotExpectArboErrKeyNotFound(t *testing.T) {
 
 func TestKeyLen(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	// maxLevels is 100, keyPath length = ceil(maxLevels/8) = 13
 	maxLevels := 100
@@ -835,7 +835,7 @@ func TestKeyLen(t *testing.T) {
 	// expect errors when adding a key bigger than maximum capacity of the
 	// tree: ceil(maxLevels/8)
 	maxLevels = 32
-	database, err = badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err = pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err = NewTree(Config{Database: database, MaxLevels: maxLevels,
 		HashFunction: HashFunctionBlake2b})
@@ -906,7 +906,7 @@ func TestKeyLen(t *testing.T) {
 func TestKeyLenBiggerThan32(t *testing.T) {
 	c := qt.New(t)
 	maxLevels := 264
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: maxLevels,
 		HashFunction: HashFunctionBlake2b})
@@ -949,7 +949,7 @@ func BenchmarkAdd(b *testing.B) {
 
 func benchmarkAdd(b *testing.B, hashFunc HashFunction, ks, vs [][]byte) {
 	c := qt.New(b)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: 140,
 		HashFunction: hashFunc})

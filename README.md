@@ -1,4 +1,4 @@
-# arbo [![GoDoc](https://godoc.org/github.com/vocdoni/arbo?status.svg)](https://godoc.org/github.com/vocdoni/arbo) [![Go Report Card](https://goreportcard.com/badge/github.com/vocdoni/arbo)](https://goreportcard.com/report/github.com/vocdoni/arbo) [![Test](https://github.com/vocdoni/arbo/workflows/Test/badge.svg)](https://github.com/vocdoni/arbo/actions?query=workflow%3ATest)
+# arbo [![GoDoc](https://godoc.org/github.com/arnaucube/arbo?status.svg)](https://godoc.org/github.com/arnaucube/arbo)
 
 > *arbo*: tree in Esperanto.
 
@@ -10,7 +10,7 @@ Main characteristics of arbo are:
 	- So for example, when working with zkSnarks the [Poseidon hash](https://eprint.iacr.org/2019/458.pdf) function can be used, but when not, it can be used the [Blake2b hash](https://www.blake2.net/blake2.pdf) function, which has much faster computation time.
 	- New hash functions can be plugged by just implementing the interface
 - Parallelizes computation by CPUs
-	- See [AddBatch section](https://github.com/vocdoni/arbo#addbatch)
+	- See [AddBatch section](https://github.com/arnaucube/arbo#addbatch)
 
 ## AddBatch
 The method `tree.AddBatch` is designed for the cases where there is a big amount of key-values to be added in the tree. It has the following characteristics:
@@ -45,11 +45,17 @@ And, for example, if instead of using Poseidon hash function we use Blake2b, tim
 ## Usage
 
 ```go
+// import "github.com/arnaucube/arbo/db"
+// import "github.com/arnaucube/arbo/db/pebbledb"
 // create new database
-database, err := db.NewBadgerDB(c.TempDir())
+database, err := pebbledb.New(db.Options{Path: "./data"})
 
 // create new Tree with maxLevels=100 and Blake2b hash function
-tree, err := arbo.NewTree(database, 100, arbo.HashFunctionBlake2b)
+tree, err := arbo.NewTree(arbo.Config{
+    Database: database,
+    MaxLevels: 100,
+    HashFunction: arbo.HashFunctionBlake2b,
+})
 
 key := []byte("hello")
 value := []byte("world")
@@ -111,3 +117,7 @@ kBytes := arbo.BigIntToBytes(bLen, kBigInt)
 // convert byte array to *big.Int
 kBigInt2 := arbo.BytesToBigInt(kBytes)
 ```
+
+
+# Acknowledgements
+This library was originally implemented at https://github.com/vocdoni/arbo . This fork includes the `db` package from https://github.com/vocdoni/davinci-node/tree/main/db .

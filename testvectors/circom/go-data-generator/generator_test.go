@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
+	"github.com/arnaucube/arbo"
+	"github.com/arnaucube/arbo/db"
+	"github.com/arnaucube/arbo/db/pebbledb"
 	qt "github.com/frankban/quicktest"
-	"github.com/vocdoni/arbo"
-	"go.vocdoni.io/dvote/db"
-	"go.vocdoni.io/dvote/db/badgerdb"
 )
 
 func TestGenerator(t *testing.T) {
 	c := qt.New(t)
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := arbo.NewTree(arbo.Config{Database: database, MaxLevels: 4,
 		HashFunction: arbo.HashFunctionPoseidon})
@@ -42,7 +42,7 @@ func TestGenerator(t *testing.T) {
 	jCvp, err := json.Marshal(cvp)
 	c.Assert(err, qt.IsNil)
 	// store the data into a file that will be used at the circom test
-	err = ioutil.WriteFile("go-smt-verifier-inputs.json", jCvp, 0600)
+	err = os.WriteFile("go-smt-verifier-inputs.json", jCvp, 0600)
 	c.Assert(err, qt.IsNil)
 
 	// proof of non-existence
@@ -52,6 +52,6 @@ func TestGenerator(t *testing.T) {
 	jCvp, err = json.Marshal(cvp)
 	c.Assert(err, qt.IsNil)
 	// store the data into a file that will be used at the circom test
-	err = ioutil.WriteFile("go-smt-verifier-non-existence-inputs.json", jCvp, 0600)
+	err = os.WriteFile("go-smt-verifier-non-existence-inputs.json", jCvp, 0600)
 	c.Assert(err, qt.IsNil)
 }

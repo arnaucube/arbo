@@ -71,7 +71,7 @@ describe("merkletreetree circom-proof-verifier", function () {
 
     it("Test smt-verifier proof of existence go inputs", async () => {
         // fromGo is a json CircomVerifierProof generated from Go code using
-        // https://github.com/vocdoni/arbo
+        // https://github.com/arnaucube/arbo
         let rawdata = fs.readFileSync('go-data-generator/go-smt-verifier-inputs.json');
         let fromGo = JSON.parse(rawdata);
         inputsVerifier=fromGo;
@@ -82,7 +82,7 @@ describe("merkletreetree circom-proof-verifier", function () {
     });
     it("Test smt-verifier proof of non-existence go inputs", async () => {
         // fromGo is a json CircomVerifierProof generated from Go code using
-        // https://github.com/vocdoni/arbo
+        // https://github.com/arnaucube/arbo
         let rawdata = fs.readFileSync('go-data-generator/go-smt-verifier-non-existence-inputs.json');
         let fromGo = JSON.parse(rawdata);
         inputsVerifierNonExistence=fromGo;

@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/arnaucube/arbo/db"
+	"github.com/arnaucube/arbo/db/pebbledb"
 	qt "github.com/frankban/quicktest"
-	"go.vocdoni.io/dvote/db"
-	"go.vocdoni.io/dvote/db/badgerdb"
 )
 
 // testVirtualTree adds the given key-values and tests the vt root against the
@@ -17,7 +17,7 @@ func testVirtualTree(c *qt.C, maxLevels int, keys, values [][]byte) {
 	c.Assert(len(keys), qt.Equals, len(values))
 
 	// normal tree, to have an expected root value
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: maxLevels,
 		HashFunction: HashFunctionSha256})
@@ -123,7 +123,7 @@ func TestVirtualTreeAddBatch(t *testing.T) {
 	}
 
 	// normal tree, to have an expected root value
-	database, err := badgerdb.New(db.Options{Path: c.TempDir()})
+	database, err := pebbledb.New(db.Options{Path: c.TempDir()})
 	c.Assert(err, qt.IsNil)
 	tree, err := NewTree(Config{Database: database, MaxLevels: maxLevels,
 		HashFunction: HashFunctionBlake2b})

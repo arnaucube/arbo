@@ -21,10 +21,15 @@ import (
 	"runtime"
 	"sync"
 
-	"go.vocdoni.io/dvote/db"
+	"github.com/arnaucube/arbo/db"
 )
 
 const (
+	bitsPerByte    = 8
+	leafCountBytes = 8
+	// Dump entries encode a one-byte key length and a two-byte value length.
+	dumpEntryHeaderBytes = 3
+
 	// PrefixValueLen defines the bytes-prefix length used for the Value
 	// bytes representation stored in the db
 	PrefixValueLen = 2
@@ -160,13 +165,12 @@ func NewTreeWithTx(wTx db.WriteTx, cfg Config) (*Tree, error) {
 
 // Root returns the root of the Tree
 func (t *Tree) Root() ([]byte, error) {
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 	return t.RootWithTx(rTx)
 }
 
-// RootWithTx returns the root of the Tree using the given db.ReadTx
-func (t *Tree) RootWithTx(rTx db.ReadTx) ([]byte, error) {
+// RootWithTx returns the root of the Tree using the given db.Reader
+func (t *Tree) RootWithTx(rTx db.Reader) ([]byte, error) {
 	// if snapshotRoot is defined, means that the tree is a snapshot, and
 	// the root is not obtained from the db, but from the snapshotRoot
 	// parameter
@@ -308,7 +312,7 @@ func (t *Tree) addBatchInDisk(wTx db.WriteTx, keys, values [][]byte) ([]Invalid,
 		return nil, fmt.Errorf("This error should not be reached."+
 			" len(subRoots) != nCPU, len(subRoots)=%d, nCPU=%d."+
 			" Please report it in a new issue:"+
-			" https://github.com/vocdoni/arbo/issues/new", len(subRoots), nCPU)
+			" https://github.com/arnaucube/arbo/issues/new", len(subRoots), nCPU)
 	}
 
 	invalidsInBucket := make([][]Invalid, nCPU)
@@ -429,7 +433,7 @@ func (t *Tree) upFromSubRoots(wTx db.WriteTx, subRoots [][]byte) ([]byte, error)
 	return t.upFromSubRoots(wTx, newSubRoots)
 }
 
-func (t *Tree) getSubRootsAtLevel(rTx db.ReadTx, root []byte, l int) ([][]byte, error) {
+func (t *Tree) getSubRootsAtLevel(rTx db.Reader, root []byte, l int) ([][]byte, error) {
 	// go at level l and return each node key, where each node key is the
 	// subRoot of the subTree that starts there
 
@@ -491,7 +495,7 @@ func (t *Tree) addBatchInMemory(wTx db.WriteTx, keys, values [][]byte) ([]Invali
 
 // loadVT loads a new virtual tree (vt) from the current Tree, which contains
 // the same leafs.
-func (t *Tree) loadVT(rTx db.ReadTx) (vt, error) {
+func (t *Tree) loadVT(rTx db.Reader) (vt, error) {
 	vt := newVT(t.maxLevels, t.hashFunction)
 	vt.params.dbg = t.dbg
 	var callbackErr error
@@ -639,7 +643,7 @@ func (t *Tree) add(wTx db.WriteTx, root []byte, fromLvl int, k, v []byte) ([]byt
 }
 
 // down goes down to the leaf recursively
-func (t *Tree) down(rTx db.ReadTx, newKey, currKey []byte, siblings [][]byte,
+func (t *Tree) down(rTx db.Reader, newKey, currKey []byte, siblings [][]byte,
 	path []bool, currLvl int, getLeaf bool) (
 	[]byte, []byte, [][]byte, error) {
 	if currLvl > t.maxLevels {
@@ -666,7 +670,7 @@ func (t *Tree) down(rTx db.ReadTx, newKey, currKey []byte, siblings [][]byte,
 			" above should avoid reaching this point. This panic is temporary" +
 			" for reporting purposes, will be deleted in future versions." +
 			" Please paste this log (including the previous log lines) in a" +
-			" new issue: https://github.com/vocdoni/arbo/issues/new") // TMP
+			" new issue: https://github.com/arnaucube/arbo/issues/new") // TMP
 	case PrefixValueLeaf: // leaf
 		if !bytes.Equal(currValue, emptyValue) {
 			if getLeaf {
@@ -854,7 +858,7 @@ func ReadIntermediateChilds(b []byte) ([]byte, []byte) {
 func getPath(numLevels int, k []byte) []bool {
 	path := make([]bool, numLevels)
 	for n := 0; n < numLevels; n++ {
-		path[n] = k[n/8]&(1<<(n%8)) != 0
+		path[n] = k[n/bitsPerByte]&(1<<(n%bitsPerByte)) != 0
 	}
 	return path
 }
@@ -932,15 +936,14 @@ func (t *Tree) UpdateWithTx(wTx db.WriteTx, k, v []byte) error {
 // returned, together with the packed siblings of the proof, and a boolean
 // parameter that indicates if the proof is of existence (true) or not (false).
 func (t *Tree) GenProof(k []byte) ([]byte, []byte, []byte, bool, error) {
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 
 	return t.GenProofWithTx(rTx, k)
 }
 
 // GenProofWithTx does the same than the GenProof method, but allowing to pass
-// the db.ReadTx that is used.
-func (t *Tree) GenProofWithTx(rTx db.ReadTx, k []byte) ([]byte, []byte, []byte, bool, error) {
+// the db.Reader that is used.
+func (t *Tree) GenProofWithTx(rTx db.Reader, k []byte) ([]byte, []byte, []byte, bool, error) {
 	keyPath, err := keyPathFromKey(t.maxLevels, k)
 	if err != nil {
 		return nil, nil, nil, false, err
@@ -1046,7 +1049,7 @@ func bitmapToBytes(bitmap []bool) []byte {
 	b := make([]byte, bitmapBytesLen)
 	for i := 0; i < len(bitmap); i++ {
 		if bitmap[i] {
-			b[i/8] |= 1 << (i % 8)
+			b[i/bitsPerByte] |= 1 << (i % bitsPerByte)
 		}
 	}
 	return b
@@ -1067,17 +1070,16 @@ func bytesToBitmap(b []byte) []bool {
 // will be placed the data found in the tree in the leaf that was on the path
 // going to the input key.
 func (t *Tree) Get(k []byte) ([]byte, []byte, error) {
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 
 	return t.GetWithTx(rTx, k)
 }
 
 // GetWithTx does the same than the Get method, but allowing to pass the
-// db.ReadTx that is used. If the key is not found, will return the error
+// db.Reader that is used. If the key is not found, will return the error
 // ErrKeyNotFound, and in the leafK & leafV parameters will be placed the data
 // found in the tree in the leaf that was on the path going to the input key.
-func (t *Tree) GetWithTx(rTx db.ReadTx, k []byte) ([]byte, []byte, error) {
+func (t *Tree) GetWithTx(rTx db.Reader, k []byte) ([]byte, []byte, error) {
 	keyPath, err := keyPathFromKey(t.maxLevels, k)
 	if err != nil {
 		return nil, nil, err
@@ -1149,7 +1151,7 @@ func (t *Tree) incNLeafs(wTx db.WriteTx, nLeafs int) error {
 }
 
 func (t *Tree) setNLeafs(wTx db.WriteTx, nLeafs int) error {
-	b := make([]byte, 8)
+	b := make([]byte, leafCountBytes)
 	binary.LittleEndian.PutUint64(b, uint64(nLeafs))
 	if err := wTx.Set(dbKeyNLeafs, b); err != nil {
 		return err
@@ -1159,15 +1161,14 @@ func (t *Tree) setNLeafs(wTx db.WriteTx, nLeafs int) error {
 
 // GetNLeafs returns the number of Leafs of the Tree.
 func (t *Tree) GetNLeafs() (int, error) {
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 
 	return t.GetNLeafsWithTx(rTx)
 }
 
 // GetNLeafsWithTx does the same than the GetNLeafs method, but allowing to
-// pass the db.ReadTx that is used.
-func (t *Tree) GetNLeafsWithTx(rTx db.ReadTx) (int, error) {
+// pass the db.Reader that is used.
+func (t *Tree) GetNLeafsWithTx(rTx db.Reader) (int, error) {
 	b, err := rTx.Get(dbKeyNLeafs)
 	if err != nil {
 		return 0, err
@@ -1220,8 +1221,7 @@ func (t *Tree) Snapshot(fromRoot []byte) (*Tree, error) {
 			return nil, err
 		}
 	}
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 	// check that the root exists in the db
 	if !bytes.Equal(fromRoot, t.emptyHash) {
 		if _, err := rTx.Get(fromRoot); err == ErrKeyNotFound {
@@ -1246,15 +1246,14 @@ func (t *Tree) Snapshot(fromRoot []byte) (*Tree, error) {
 // Iterate iterates through the full Tree, executing the given function on each
 // node of the Tree.
 func (t *Tree) Iterate(fromRoot []byte, f func([]byte, []byte)) error {
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 
 	return t.IterateWithTx(rTx, fromRoot, f)
 }
 
 // IterateWithTx does the same than the Iterate method, but allowing to pass
-// the db.ReadTx that is used.
-func (t *Tree) IterateWithTx(rTx db.ReadTx, fromRoot []byte, f func([]byte, []byte)) error {
+// the db.Reader that is used.
+func (t *Tree) IterateWithTx(rTx db.Reader, fromRoot []byte, f func([]byte, []byte)) error {
 	// allow to define which root to use
 	if fromRoot == nil {
 		var err error
@@ -1270,8 +1269,7 @@ func (t *Tree) IterateWithTx(rTx db.ReadTx, fromRoot []byte, f func([]byte, []by
 // level, and a boolean parameter used by the passed function, is to indicate to
 // stop iterating on the branch when the method returns 'true'.
 func (t *Tree) IterateWithStop(fromRoot []byte, f func(int, []byte, []byte) bool) error {
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 
 	// allow to define which root to use
 	if fromRoot == nil {
@@ -1285,8 +1283,8 @@ func (t *Tree) IterateWithStop(fromRoot []byte, f func(int, []byte, []byte) bool
 }
 
 // IterateWithStopWithTx does the same than the IterateWithStop method, but
-// allowing to pass the db.ReadTx that is used.
-func (t *Tree) IterateWithStopWithTx(rTx db.ReadTx, fromRoot []byte,
+// allowing to pass the db.Reader that is used.
+func (t *Tree) IterateWithStopWithTx(rTx db.Reader, fromRoot []byte,
 	f func(int, []byte, []byte) bool) error {
 	// allow to define which root to use
 	if fromRoot == nil {
@@ -1299,7 +1297,7 @@ func (t *Tree) IterateWithStopWithTx(rTx db.ReadTx, fromRoot []byte,
 	return t.iterWithStop(rTx, fromRoot, 0, f)
 }
 
-func (t *Tree) iterWithStop(rTx db.ReadTx, k []byte, currLevel int,
+func (t *Tree) iterWithStop(rTx db.Reader, k []byte, currLevel int,
 	f func(int, []byte, []byte) bool) error {
 	var v []byte
 	var err error
@@ -1336,7 +1334,7 @@ func (t *Tree) iterWithStop(rTx db.ReadTx, k []byte, currLevel int,
 	return nil
 }
 
-func (t *Tree) iter(rTx db.ReadTx, k []byte, f func([]byte, []byte)) error {
+func (t *Tree) iter(rTx db.Reader, k []byte, f func([]byte, []byte)) error {
 	f2 := func(currLvl int, k, v []byte) bool {
 		f(k, v)
 		return false
@@ -1443,7 +1441,7 @@ func (t *Tree) ImportDumpReader(r io.Reader) error {
 
 	var keys, values [][]byte
 	for {
-		l := make([]byte, 3)
+		l := make([]byte, dumpEntryHeaderBytes)
 		_, err = io.ReadFull(r, l)
 		if err == io.EOF {
 			break
@@ -1456,7 +1454,7 @@ func (t *Tree) ImportDumpReader(r io.Reader) error {
 		if err != nil {
 			return err
 		}
-		lenV := binary.LittleEndian.Uint16(l[1:3])
+		lenV := binary.LittleEndian.Uint16(l[1:dumpEntryHeaderBytes])
 		v := make([]byte, lenV)
 		_, err = io.ReadFull(r, v)
 		if err != nil {
@@ -1485,8 +1483,7 @@ func (t *Tree) GraphvizFirstNLevels(w io.Writer, fromRoot []byte, untilLvl int) 
 node [fontname=Monospace,fontsize=10,shape=box]
 `)
 
-	rTx := t.db.ReadTx()
-	defer rTx.Discard()
+	rTx := t.db
 
 	if fromRoot == nil {
 		var err error

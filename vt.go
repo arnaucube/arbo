@@ -174,7 +174,7 @@ func (t *vt) addBatch(ks, vs [][]byte) ([]Invalid, error) {
 		return nil, fmt.Errorf("This error should not be reached."+
 			" len(nodesAtL) != nCPU, len(nodesAtL)=%d, nCPU=%d."+
 			" Please report it in a new issue:"+
-			" https://github.com/vocdoni/arbo/issues/new", len(nodesAtL), nCPU)
+			" https://github.com/arnaucube/arbo/issues/new", len(nodesAtL), nCPU)
 	}
 
 	subRoots := make([]*node, nCPU)
@@ -242,7 +242,7 @@ func (n *node) getNodesAtLevel(currLvl, l int) ([]*node, error) {
 		return nil, fmt.Errorf("This error should not be reached."+
 			" currLvl >= l, currLvl=%d, l=%d."+
 			" Please report it in a new issue:"+
-			" https://github.com/vocdoni/arbo/issues/new", currLvl, l)
+			" https://github.com/arnaucube/arbo/issues/new", currLvl, l)
 	}
 
 	var nodes []*node
@@ -539,7 +539,7 @@ func keyToBucket(k []byte, nBuckets int) int {
 	r := b
 	mid := len(r) / 2 //nolint:gomnd
 	for i := 0; i < nLevels; i++ {
-		if int(k[i/8]&(1<<(i%8))) != 0 {
+		if int(k[i/bitsPerByte]&(1<<(i%bitsPerByte))) != 0 {
 			r = r[mid:]
 			mid = len(r) / 2 //nolint:gomnd
 		} else {
