@@ -53,3 +53,30 @@ func TestHashBlake2b(t *testing.T) {
 		qt.Equals,
 		"928b20366943e2afd11ebc0eae2e53a93bf177a4fcf35bcc64d503704e65e202")
 }
+
+func TestHashBlake3(t *testing.T) {
+	var hashFunc HashFunction = HashFunctionBlake3
+	// The first 32 bytes of the official BLAKE3 test vectors:
+	// https://github.com/BLAKE3-team/BLAKE3/blob/master/test_vectors/test_vectors.json
+	const emptyHash = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+	const threeBytesHash = "e1be4d7a8ab5560aa4199eea339849ba8e293d55ca0a81006726d184519e647f"
+	tests := []struct {
+		name  string
+		input [][]byte
+		want  string
+	}{
+		{name: "no inputs", want: emptyHash},
+		{name: "empty inputs", input: [][]byte{nil, {}}, want: emptyHash},
+		{name: "single input", input: [][]byte{{0, 1, 2}}, want: threeBytesHash},
+		{name: "multiple inputs", input: [][]byte{{0}, nil, {1, 2}, {}}, want: threeBytesHash},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			c := qt.New(t)
+			h, err := hashFunc.Hash(test.input...)
+			c.Assert(err, qt.IsNil)
+			c.Assert(hex.EncodeToString(h), qt.Equals, test.want)
+			c.Assert(len(h), qt.Equals, hashFunc.Len())
+		})
+	}
+}

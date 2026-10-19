@@ -7,6 +7,7 @@ require (
 	github.com/frankban/quicktest v1.13.0
 	github.com/iden3/go-iden3-crypto v0.0.12
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
+	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.7.0
 )
 
@@ -26,6 +27,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
